@@ -2,10 +2,13 @@ package org.test.evp
 
 import com.snowflake.snowpark._
 import com.snowflake.snowpark.functions._
+import com.snowflake.snowpark.tableFunctions.flatten
+//import org.apache.spark.sql.functions._
+
 
 object Main {
   def main(args: Array[String]): Unit = {
-    // Replace the <placeholders> below.
+    //  need to replace username and password with accesskey and secret key
     val configs = Map (
       //https://uyb88085.us-east-1.snowflakecomputing.com
       //"URL" -> "https://uyb88085.us-east-1.snowflakecomputing.com:443",
@@ -21,17 +24,21 @@ object Main {
     "SCHEMA" -> "PUBLIC"
     )
     val session = Session.builder.configs(configs).create
-  //  session.sql("show tables").show()
+    import session.implicits._
+  //  val df = session.read.json("@s3_stage/ElectricVehiclePopulationData.json")
+      val df = session.read.json("@s3_stage/test3.json")
 
-   // val dfJson = session.read.json("@s3_stage/test.json")
+    val dfdata1 = df.select(col("$1")("data").as("data"))
+    val dfmeta = df.select(col("$1")("meta").as("meta")) //.show(2,150)
+     //dfdata1.flatten(col("data")).show(2)
+    val datadf = dfdata1.flatten(col("data")).select(col("value").as("data"))//.show(10)
+    datadf.show(15,100)
+    println(datadf.count())
 
-    val dfJson = session.read.json("@s3_stage/test.json").select(col("$1")("data"))
-     dfJson.schema.printTreeString();
-
-    dfJson.show(5);
-//    val meta = dfJson.select( col("$1"))
-//    meta.schema.printTreeString();
-
-  //  val dfjson1 = dfJson.flatten("variant")
+    val columns1 = dfmeta.select(col("meta")("view")("columns").as("columns1"))
+ //   columns1.schema.printTreeString()
+   val colnames = columns1.flatten(col(columns1)).select(col("value")("name").as("name"))
+    colnames.show(30,150)
+    println(colnames.count())
   }
 }
